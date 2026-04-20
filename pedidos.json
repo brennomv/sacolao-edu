@@ -1,0 +1,26 @@
+[
+  {
+    "id": "99912ed9-0d19-4a1e-b391-18f6e35f77f1",
+    "itens": [
+      {
+        "nome": "Banana",
+        "quantidade": 2
+      }
+    ],
+    "cliente": "João",
+    "endereco": "Rua A",
+    "status": "pendente"
+  },
+  {
+    "id": "401a9f20-ee05-49ef-a8a4-24d1a73cc6fc",
+    "itens": [
+      {
+        "nome": "Banana",
+        "quantidade": 2
+      }
+    ],
+    "cliente": "Maria",
+    "endereco": "Rua B",
+    "status": "pendente"
+  }
+]
