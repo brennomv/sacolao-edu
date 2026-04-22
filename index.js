@@ -9,6 +9,12 @@ const prisma = new PrismaClient();
 
 const app = express();
 
+const fs = require("fs");
+
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
+}
+
 app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
@@ -86,6 +92,9 @@ app.get("/produtos", async (req, res) => {
 // CRIAR COM UPLOAD DE IMAGEM
 app.post("/produtos", upload.single("imagem"), async (req, res) => {
   try {
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
+
     const { nome, preco } = req.body;
 
     const imagem = req.file
