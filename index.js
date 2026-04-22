@@ -85,7 +85,7 @@ app.get("/produtos", async (req, res) => {
     const produtos = await prisma.produto.findMany();
     res.json(produtos);
   } catch (error) {
-    console.log(error);
+    console.log("ERRO REAL:", error);
     res.status(500).json({ erro: error.message });
   }
 });
