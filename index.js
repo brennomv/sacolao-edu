@@ -27,7 +27,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// servir imagens
+// server imagens
 app.use("/uploads", express.static("uploads"));
 
 // =======================
@@ -89,7 +89,7 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
     const { nome, preco } = req.body;
 
     const imagem = req.file
-      ? `http://localhost:3000/uploads/${req.file.filename}`
+      ? `http://sacolao-api.onrender.com/uploads/${req.file.filename}`
       : null;
 
     const novoProduto = await prisma.produto.create({
@@ -161,5 +161,5 @@ app.put("/pedidos/:id", async (req, res) => {
 // 🚀 SERVER
 // =======================
 app.listen(3000, () => {
-  console.log("🚀 Sacolão do Edu rodando em http://localhost:3000");
+  console.log("🚀 Sacolão do Edu rodando em http://sacolao-api.onrender.com");
 });
