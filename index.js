@@ -1,62 +1,39 @@
-const multer = require("multer");
-const path = require("path");
 const express = require("express");
 const cors = require("cors");
+const multer = require("multer");
 require("dotenv").config();
 
 const { PrismaClient } = require("@prisma/client");
+const { createClient } = require("@supabase/supabase-js");
+
 const prisma = new PrismaClient();
 
 const app = express();
 
-const fs = require("fs");
-
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
-}
-
 app.use(cors());
 app.use(express.json());
-app.use("/uploads", express.static("uploads"));
 
 // =======================
-// 📁 UPLOAD CONFIG
+// 🔥 SUPABASE CONFIG
 // =======================
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ storage });
-
-// server imagens
-app.use("/uploads", express.static("uploads"));
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
 // =======================
-// 👤 USUÁRIOS (LOGIN SIMPLES)
+// 📁 MULTER (MEMÓRIA)
+// =======================
+const upload = multer({ storage: multer.memoryStorage() });
+
+// =======================
+// 👤 LOGIN
 // =======================
 const usuarios = [
-  {
-    id: 1,
-    email: "admin@sacolao.com",
-    senha: "123",
-    tipo: "admin"
-  },
-  {
-    id: 2,
-    email: "cliente@teste.com",
-    senha: "123",
-    tipo: "cliente"
-  }
+  { id: 1, email: "admin@sacolao.com", senha: "123", tipo: "admin" },
+  { id: 2, email: "cliente@teste.com", senha: "123", tipo: "cliente" }
 ];
 
-// =======================
-// 🔐 LOGIN
-// =======================
 app.post("/login", (req, res) => {
   const { email, senha } = req.body;
 
@@ -68,15 +45,11 @@ app.post("/login", (req, res) => {
     return res.status(401).json({ erro: "Login inválido" });
   }
 
-  return res.json({
-    id: user.id,
-    email: user.email,
-    tipo: user.tipo
-  });
+  res.json(user);
 });
 
 // =======================
-// 🥕 PRODUTOS (PRISMA)
+// 🥕 PRODUTOS
 // =======================
 
 // LISTAR
@@ -85,42 +58,56 @@ app.get("/produtos", async (req, res) => {
     const produtos = await prisma.produto.findMany();
     res.json(produtos);
   } catch (error) {
-    console.log("ERRO REAL:", error);
+    console.log(error);
     res.status(500).json({ erro: error.message });
   }
 });
 
-// CRIAR COM UPLOAD DE IMAGEM
+// CRIAR COM UPLOAD NO SUPABASE
 app.post("/produtos", upload.single("imagem"), async (req, res) => {
   try {
-    console.log("BODY:", req.body);
-    console.log("FILE:", req.file);
-
     const { nome, preco } = req.body;
 
-    const imagem = req.file
-      ? `https://sacolao-api.onrender.com/uploads/${req.file.filename}`
-      : null;
+    let imagemUrl = null;
+
+    if (req.file) {
+      const fileName = Date.now() + "-" + req.file.originalname;
+
+      // 🔥 upload para o bucket "produtos"
+      const { error } = await supabase.storage
+        .from("produtos")
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype
+        });
+
+      if (error) throw error;
+
+      // 🔥 gerar URL pública
+      const { data } = supabase.storage
+        .from("produtos")
+        .getPublicUrl(fileName);
+
+      imagemUrl = data.publicUrl;
+    }
 
     const novoProduto = await prisma.produto.create({
       data: {
         nome,
         preco: Number(preco),
-        imagem
+        imagem: imagemUrl
       }
     });
 
     res.json(novoProduto);
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao criar produto" });
+    console.log(error);
+    res.status(500).json({ erro: error.message });
   }
 });
 
 // =======================
-// 🧾 PEDIDOS (PRISMA)
+// 🧾 PEDIDOS
 // =======================
-
-// CRIAR PEDIDO
 app.post("/pedidos", async (req, res) => {
   try {
     const { nome, endereco, total } = req.body;
@@ -136,34 +123,16 @@ app.post("/pedidos", async (req, res) => {
 
     res.json(pedido);
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao criar pedido" });
+    res.status(500).json({ erro: error.message });
   }
 });
 
-// LISTAR PEDIDOS
 app.get("/pedidos", async (req, res) => {
   try {
     const pedidos = await prisma.pedido.findMany();
     res.json(pedidos);
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao buscar pedidos" });
-  }
-});
-
-// ATUALIZAR STATUS
-app.put("/pedidos/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const pedido = await prisma.pedido.update({
-      where: { id: Number(id) },
-      data: { status }
-    });
-
-    res.json(pedido);
-  } catch (error) {
-    res.status(500).json({ erro: "Erro ao atualizar pedido" });
+    res.status(500).json({ erro: error.message });
   }
 });
 
@@ -171,5 +140,5 @@ app.put("/pedidos/:id", async (req, res) => {
 // 🚀 SERVER
 // =======================
 app.listen(3000, () => {
-  console.log("🚀 Sacolão do Edu rodando em http://sacolao-api.onrender.com");
+  console.log("🚀 API rodando");
 });
