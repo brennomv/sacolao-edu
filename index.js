@@ -7,14 +7,23 @@ const { PrismaClient } = require("@prisma/client");
 const { createClient } = require("@supabase/supabase-js");
 
 const prisma = new PrismaClient();
-
 const app = express();
 
+// =======================
+// ⚙️ CONFIG BÁSICA
+// =======================
 app.use(cors());
 app.use(express.json());
 
 // =======================
-// 🔥 SUPABASE CONFIG
+// 🔥 VALIDAR ENV
+// =======================
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+  throw new Error("❌ Variáveis do Supabase não configuradas");
+}
+
+// =======================
+// 🔥 SUPABASE
 // =======================
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -22,12 +31,21 @@ const supabase = createClient(
 );
 
 // =======================
-// 📁 MULTER (MEMÓRIA)
+// 📁 UPLOAD CONFIG
 // =======================
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Apenas imagens são permitidas"));
+    }
+  }
+});
 
 // =======================
-// 👤 LOGIN
+// 👤 LOGIN SIMPLES
 // =======================
 const usuarios = [
   { id: 1, email: "admin@sacolao.com", senha: "123", tipo: "admin" },
@@ -55,25 +73,33 @@ app.post("/login", (req, res) => {
 // LISTAR
 app.get("/produtos", async (req, res) => {
   try {
-    const produtos = await prisma.produto.findMany();
+    const produtos = await prisma.produto.findMany({
+      orderBy: { id: "desc" }
+    });
+
     res.json(produtos);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ erro: error.message });
+    console.log("ERRO PRODUTOS:", error);
+    res.status(500).json({ erro: "Erro ao buscar produtos" });
   }
 });
 
-// CRIAR COM UPLOAD NO SUPABASE
+// CRIAR PRODUTO
 app.post("/produtos", upload.single("imagem"), async (req, res) => {
   try {
     const { nome, preco } = req.body;
 
+    if (!nome || !preco) {
+      return res.status(400).json({ erro: "Nome e preço são obrigatórios" });
+    }
+
     let imagemUrl = null;
 
     if (req.file) {
-      const fileName = Date.now() + "-" + req.file.originalname;
+      const fileName =
+        Date.now() + "-" + req.file.originalname.replace(/\s/g, "");
 
-      // 🔥 upload para o bucket "produtos"
+      // Upload para Supabase
       const { error } = await supabase.storage
         .from("produtos")
         .upload(fileName, req.file.buffer, {
@@ -82,7 +108,7 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
 
       if (error) throw error;
 
-      // 🔥 gerar URL pública
+      // URL pública
       const { data } = supabase.storage
         .from("produtos")
         .getPublicUrl(fileName);
@@ -100,17 +126,23 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
 
     res.json(novoProduto);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ erro: error.message });
+    console.log("ERRO CRIAR PRODUTO:", error);
+    res.status(500).json({ erro: "Erro ao criar produto" });
   }
 });
 
 // =======================
 // 🧾 PEDIDOS
 // =======================
+
+// CRIAR PEDIDO
 app.post("/pedidos", async (req, res) => {
   try {
     const { nome, endereco, total } = req.body;
+
+    if (!nome || !endereco || !total) {
+      return res.status(400).json({ erro: "Dados incompletos" });
+    }
 
     const pedido = await prisma.pedido.create({
       data: {
@@ -123,16 +155,22 @@ app.post("/pedidos", async (req, res) => {
 
     res.json(pedido);
   } catch (error) {
-    res.status(500).json({ erro: error.message });
+    console.log("ERRO PEDIDO:", error);
+    res.status(500).json({ erro: "Erro ao criar pedido" });
   }
 });
 
+// LISTAR PEDIDOS
 app.get("/pedidos", async (req, res) => {
   try {
-    const pedidos = await prisma.pedido.findMany();
+    const pedidos = await prisma.pedido.findMany({
+      orderBy: { id: "desc" }
+    });
+
     res.json(pedidos);
   } catch (error) {
-    res.status(500).json({ erro: error.message });
+    console.log("ERRO PEDIDOS:", error);
+    res.status(500).json({ erro: "Erro ao buscar pedidos" });
   }
 });
 
@@ -140,5 +178,5 @@ app.get("/pedidos", async (req, res) => {
 // 🚀 SERVER
 // =======================
 app.listen(3000, () => {
-  console.log("🚀 API rodando");
+  console.log("🚀 Sacolão API rodando na porta 3000");
 });
