@@ -99,7 +99,7 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
     const { nome, preco } = req.body;
 
     const imagem = req.file
-      ? `http://sacolao-api.onrender.com/uploads/${req.file.filename}`
+      ? `https://sacolao-api.onrender.com/uploads/${req.file.filename}`
       : null;
 
     const novoProduto = await prisma.produto.create({
