@@ -84,7 +84,7 @@ app.get("/produtos", async (req, res) => {
   }
 });
 
-// CRIAR PRODUTO
+// CRIAR
 app.post("/produtos", upload.single("imagem"), async (req, res) => {
   try {
     const { nome, preco } = req.body;
@@ -99,7 +99,7 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
       const fileName =
         Date.now() + "-" + req.file.originalname.replace(/\s/g, "");
 
-      // Upload para Supabase
+      // upload
       const { error } = await supabase.storage
         .from("produtos")
         .upload(fileName, req.file.buffer, {
@@ -108,7 +108,7 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
 
       if (error) throw error;
 
-      // URL pública
+      // url pública
       const { data } = supabase.storage
         .from("produtos")
         .getPublicUrl(fileName);
@@ -131,11 +131,28 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
   }
 });
 
+// DELETAR PRODUTO 🔥
+app.delete("/produtos/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.produto.delete({
+      where: { id: Number(id) }
+    });
+
+    res.json({ message: "Produto deletado com sucesso" });
+
+  } catch (error) {
+    console.log("ERRO DELETAR PRODUTO:", error);
+    res.status(500).json({ erro: "Erro ao deletar produto" });
+  }
+});
+
 // =======================
 // 🧾 PEDIDOS
 // =======================
 
-// CRIAR PEDIDO
+// CRIAR
 app.post("/pedidos", async (req, res) => {
   try {
     const { nome, endereco, total } = req.body;
@@ -160,7 +177,7 @@ app.post("/pedidos", async (req, res) => {
   }
 });
 
-// LISTAR PEDIDOS
+// LISTAR
 app.get("/pedidos", async (req, res) => {
   try {
     const pedidos = await prisma.pedido.findMany({
@@ -171,6 +188,25 @@ app.get("/pedidos", async (req, res) => {
   } catch (error) {
     console.log("ERRO PEDIDOS:", error);
     res.status(500).json({ erro: "Erro ao buscar pedidos" });
+  }
+});
+
+// ATUALIZAR STATUS 🔥
+app.put("/pedidos/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const pedido = await prisma.pedido.update({
+      where: { id: Number(id) },
+      data: { status }
+    });
+
+    res.json(pedido);
+
+  } catch (error) {
+    console.log("ERRO ATUALIZAR STATUS:", error);
+    res.status(500).json({ erro: "Erro ao atualizar status" });
   }
 });
 
