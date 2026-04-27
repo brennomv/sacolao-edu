@@ -14,13 +14,6 @@ app.use(cors());
 app.use(express.json());
 
 // =======================
-// 🔥 VALIDAR ENV
-// =======================
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-  throw new Error("❌ Variáveis do Supabase não configuradas");
-}
-
-// =======================
 // 🔥 SUPABASE
 // =======================
 const supabase = createClient(
@@ -65,10 +58,10 @@ app.post("/login", (req, res) => {
 });
 
 // =======================
-// ⚙️ CONFIG (WHATSAPP)
+// 📱 CONFIG (WHATSAPP)
 // =======================
 
-// GET CONFIG
+// BUSCAR CONFIG
 app.get("/config", async (req, res) => {
   try {
     let { data, error } = await supabase
@@ -77,7 +70,7 @@ app.get("/config", async (req, res) => {
       .eq("id", 1)
       .single();
 
-    // se não existir, cria automaticamente
+    // ⚠️ SE NÃO EXISTIR → CRIA AUTOMATICAMENTE
     if (!data) {
       const result = await supabase
         .from("config")
@@ -90,13 +83,13 @@ app.get("/config", async (req, res) => {
 
     res.json(data);
 
-  } catch (error) {
-    console.log("ERRO CONFIG:", error);
+  } catch (err) {
+    console.log("ERRO CONFIG:", err);
     res.status(500).json({ erro: "Erro ao buscar config" });
   }
 });
 
-// UPDATE CONFIG
+// ATUALIZAR WHATSAPP
 app.put("/config", async (req, res) => {
   try {
     const { whatsapp } = req.body;
@@ -112,8 +105,8 @@ app.put("/config", async (req, res) => {
 
     res.json(data);
 
-  } catch (error) {
-    console.log("ERRO UPDATE CONFIG:", error);
+  } catch (err) {
+    console.log("ERRO UPDATE CONFIG:", err);
     res.status(500).json({ erro: "Erro ao atualizar config" });
   }
 });
@@ -134,8 +127,8 @@ app.get("/produtos", async (req, res) => {
 
     res.json(data);
 
-  } catch (error) {
-    console.log("ERRO PRODUTOS:", error);
+  } catch (err) {
+    console.log("ERRO PRODUTOS:", err);
     res.status(500).json({ erro: "Erro ao buscar produtos" });
   }
 });
@@ -186,8 +179,8 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
 
     res.json(data);
 
-  } catch (error) {
-    console.log("ERRO CRIAR PRODUTO:", error);
+  } catch (err) {
+    console.log("ERRO CRIAR PRODUTO:", err);
     res.status(500).json({ erro: "Erro ao criar produto" });
   }
 });
@@ -206,8 +199,8 @@ app.delete("/produtos/:id", async (req, res) => {
 
     res.json({ message: "Produto deletado com sucesso" });
 
-  } catch (error) {
-    console.log("ERRO DELETAR:", error);
+  } catch (err) {
+    console.log("ERRO DELETAR:", err);
     res.status(500).json({ erro: "Erro ao deletar produto" });
   }
 });
@@ -242,8 +235,8 @@ app.post("/pedidos", async (req, res) => {
 
     res.json(data);
 
-  } catch (error) {
-    console.log("ERRO PEDIDO:", error);
+  } catch (err) {
+    console.log("ERRO PEDIDO:", err);
     res.status(500).json({ erro: "Erro ao criar pedido" });
   }
 });
@@ -260,8 +253,8 @@ app.get("/pedidos", async (req, res) => {
 
     res.json(data);
 
-  } catch (error) {
-    console.log("ERRO PEDIDOS:", error);
+  } catch (err) {
+    console.log("ERRO PEDIDOS:", err);
     res.status(500).json({ erro: "Erro ao buscar pedidos" });
   }
 });
@@ -283,8 +276,8 @@ app.put("/pedidos/:id", async (req, res) => {
 
     res.json(data);
 
-  } catch (error) {
-    console.log("ERRO STATUS:", error);
+  } catch (err) {
+    console.log("ERRO STATUS:", err);
     res.status(500).json({ erro: "Erro ao atualizar status" });
   }
 });
