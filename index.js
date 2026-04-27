@@ -45,7 +45,7 @@ const upload = multer({
 });
 
 // =======================
-// 👤 LOGIN SIMPLES
+// 👤 LOGIN
 // =======================
 const usuarios = [
   { id: 1, email: "admin@sacolao.com", senha: "123", tipo: "admin" },
@@ -64,6 +64,52 @@ app.post("/login", (req, res) => {
   }
 
   res.json(user);
+});
+
+// =======================
+// ⚙️ CONFIG (WHATSAPP)
+// =======================
+
+// GET CONFIG
+app.get("/config", async (req, res) => {
+  try {
+    let config = await prisma.config.findFirst();
+
+    // cria automaticamente se não existir
+    if (!config) {
+      config = await prisma.config.create({
+        data: {
+          id: 1,
+          whatsapp: "5591999999999"
+        }
+      });
+    }
+
+    res.json(config);
+
+  } catch (error) {
+    console.log("ERRO CONFIG:", error);
+    res.status(500).json({ erro: "Erro ao buscar config" });
+  }
+});
+
+// UPDATE CONFIG
+app.put("/config", async (req, res) => {
+  try {
+    const { whatsapp } = req.body;
+
+    const config = await prisma.config.upsert({
+      where: { id: 1 },
+      update: { whatsapp },
+      create: { id: 1, whatsapp }
+    });
+
+    res.json(config);
+
+  } catch (error) {
+    console.log("ERRO UPDATE CONFIG:", error);
+    res.status(500).json({ erro: "Erro ao atualizar config" });
+  }
 });
 
 // =======================
@@ -99,7 +145,6 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
       const fileName =
         Date.now() + "-" + req.file.originalname.replace(/\s/g, "");
 
-      // upload
       const { error } = await supabase.storage
         .from("produtos")
         .upload(fileName, req.file.buffer, {
@@ -108,7 +153,6 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
 
       if (error) throw error;
 
-      // url pública
       const { data } = supabase.storage
         .from("produtos")
         .getPublicUrl(fileName);
@@ -131,7 +175,7 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
   }
 });
 
-// DELETAR PRODUTO 🔥
+// DELETAR
 app.delete("/produtos/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -143,7 +187,7 @@ app.delete("/produtos/:id", async (req, res) => {
     res.json({ message: "Produto deletado com sucesso" });
 
   } catch (error) {
-    console.log("ERRO DELETAR PRODUTO:", error);
+    console.log("ERRO DELETAR:", error);
     res.status(500).json({ erro: "Erro ao deletar produto" });
   }
 });
@@ -191,7 +235,7 @@ app.get("/pedidos", async (req, res) => {
   }
 });
 
-// ATUALIZAR STATUS 🔥
+// ATUALIZAR STATUS
 app.put("/pedidos/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -205,7 +249,7 @@ app.put("/pedidos/:id", async (req, res) => {
     res.json(pedido);
 
   } catch (error) {
-    console.log("ERRO ATUALIZAR STATUS:", error);
+    console.log("ERRO STATUS:", error);
     res.status(500).json({ erro: "Erro ao atualizar status" });
   }
 });
