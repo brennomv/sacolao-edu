@@ -3,10 +3,8 @@ const cors = require("cors");
 const multer = require("multer");
 require("dotenv").config();
 
-const { PrismaClient } = require("@prisma/client");
 const { createClient } = require("@supabase/supabase-js");
 
-const prisma = new PrismaClient();
 const app = express();
 
 // =======================
@@ -73,19 +71,24 @@ app.post("/login", (req, res) => {
 // GET CONFIG
 app.get("/config", async (req, res) => {
   try {
-    let config = await prisma.config.findFirst();
+    let { data, error } = await supabase
+      .from("config")
+      .select("*")
+      .eq("id", 1)
+      .single();
 
-    // cria automaticamente se não existir
-    if (!config) {
-      config = await prisma.config.create({
-        data: {
-          id: 1,
-          whatsapp: "5591999999999"
-        }
-      });
+    // se não existir, cria automaticamente
+    if (!data) {
+      const result = await supabase
+        .from("config")
+        .insert([{ id: 1, whatsapp: "5591999999999" }])
+        .select()
+        .single();
+
+      data = result.data;
     }
 
-    res.json(config);
+    res.json(data);
 
   } catch (error) {
     console.log("ERRO CONFIG:", error);
@@ -98,13 +101,16 @@ app.put("/config", async (req, res) => {
   try {
     const { whatsapp } = req.body;
 
-    const config = await prisma.config.upsert({
-      where: { id: 1 },
-      update: { whatsapp },
-      create: { id: 1, whatsapp }
-    });
+    const { data, error } = await supabase
+      .from("config")
+      .update({ whatsapp })
+      .eq("id", 1)
+      .select()
+      .single();
 
-    res.json(config);
+    if (error) throw error;
+
+    res.json(data);
 
   } catch (error) {
     console.log("ERRO UPDATE CONFIG:", error);
@@ -119,11 +125,15 @@ app.put("/config", async (req, res) => {
 // LISTAR
 app.get("/produtos", async (req, res) => {
   try {
-    const produtos = await prisma.produto.findMany({
-      orderBy: { id: "desc" }
-    });
+    const { data, error } = await supabase
+      .from("produtos")
+      .select("*")
+      .order("id", { ascending: false });
 
-    res.json(produtos);
+    if (error) throw error;
+
+    res.json(data);
+
   } catch (error) {
     console.log("ERRO PRODUTOS:", error);
     res.status(500).json({ erro: "Erro ao buscar produtos" });
@@ -160,15 +170,22 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
       imagemUrl = data.publicUrl;
     }
 
-    const novoProduto = await prisma.produto.create({
-      data: {
-        nome,
-        preco: Number(preco),
-        imagem: imagemUrl
-      }
-    });
+    const { data, error } = await supabase
+      .from("produtos")
+      .insert([
+        {
+          nome,
+          preco: Number(preco),
+          imagem: imagemUrl
+        }
+      ])
+      .select()
+      .single();
 
-    res.json(novoProduto);
+    if (error) throw error;
+
+    res.json(data);
+
   } catch (error) {
     console.log("ERRO CRIAR PRODUTO:", error);
     res.status(500).json({ erro: "Erro ao criar produto" });
@@ -180,9 +197,12 @@ app.delete("/produtos/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    await prisma.produto.delete({
-      where: { id: Number(id) }
-    });
+    const { error } = await supabase
+      .from("produtos")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
 
     res.json({ message: "Produto deletado com sucesso" });
 
@@ -205,16 +225,23 @@ app.post("/pedidos", async (req, res) => {
       return res.status(400).json({ erro: "Dados incompletos" });
     }
 
-    const pedido = await prisma.pedido.create({
-      data: {
-        nome,
-        endereco,
-        total,
-        status: "pendente"
-      }
-    });
+    const { data, error } = await supabase
+      .from("pedidos")
+      .insert([
+        {
+          nome,
+          endereco,
+          total,
+          status: "pendente"
+        }
+      ])
+      .select()
+      .single();
 
-    res.json(pedido);
+    if (error) throw error;
+
+    res.json(data);
+
   } catch (error) {
     console.log("ERRO PEDIDO:", error);
     res.status(500).json({ erro: "Erro ao criar pedido" });
@@ -224,11 +251,15 @@ app.post("/pedidos", async (req, res) => {
 // LISTAR
 app.get("/pedidos", async (req, res) => {
   try {
-    const pedidos = await prisma.pedido.findMany({
-      orderBy: { id: "desc" }
-    });
+    const { data, error } = await supabase
+      .from("pedidos")
+      .select("*")
+      .order("id", { ascending: false });
 
-    res.json(pedidos);
+    if (error) throw error;
+
+    res.json(data);
+
   } catch (error) {
     console.log("ERRO PEDIDOS:", error);
     res.status(500).json({ erro: "Erro ao buscar pedidos" });
@@ -241,12 +272,16 @@ app.put("/pedidos/:id", async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const pedido = await prisma.pedido.update({
-      where: { id: Number(id) },
-      data: { status }
-    });
+    const { data, error } = await supabase
+      .from("pedidos")
+      .update({ status })
+      .eq("id", id)
+      .select()
+      .single();
 
-    res.json(pedido);
+    if (error) throw error;
+
+    res.json(data);
 
   } catch (error) {
     console.log("ERRO STATUS:", error);

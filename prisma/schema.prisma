@@ -30,6 +30,6 @@ model Pedido {
 }
 
 model Config {
-  id        Int    @id @default(1)
+  id        Int    @id
   whatsapp  String
 }
