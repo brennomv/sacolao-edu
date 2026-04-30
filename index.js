@@ -71,7 +71,7 @@ app.get("/config", async (req, res) => {
 
     if (error) throw error;
 
-    // Se não existir
+    // Se não existir → cria automaticamente
     if (!data || data.length === 0) {
       const { data: novo, error: erroInsert } = await supabase
         .from("config")
@@ -86,12 +86,12 @@ app.get("/config", async (req, res) => {
     res.json(data[0]);
 
   } catch (err) {
-    console.log("ERRO CONFIG:", err.message);
-    res.status(500).json({ erro: "Erro ao buscar config" });
+    console.log("ERRO CONFIG:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
-// ATUALIZAR WHATSAPP
+// ATUALIZAR WHATSAPP (🔥 CORRIGIDO COM UPSERT)
 app.put("/config", async (req, res) => {
   try {
     let { whatsapp } = req.body;
@@ -100,13 +100,12 @@ app.put("/config", async (req, res) => {
       return res.status(400).json({ erro: "WhatsApp é obrigatório" });
     }
 
-    // limpa caracteres
+    // limpa caracteres (só números)
     whatsapp = whatsapp.replace(/\D/g, "");
 
     const { data, error } = await supabase
       .from("config")
-      .update({ whatsapp })
-      .eq("id", 1)
+      .upsert([{ id: 1, whatsapp }], { onConflict: "id" })
       .select();
 
     if (error) throw error;
@@ -114,8 +113,8 @@ app.put("/config", async (req, res) => {
     res.json(data[0]);
 
   } catch (err) {
-    console.log("ERRO UPDATE CONFIG:", err.message);
-    res.status(500).json({ erro: "Erro ao atualizar config" });
+    console.log("ERRO UPDATE CONFIG:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
@@ -136,8 +135,8 @@ app.get("/produtos", async (req, res) => {
     res.json(data);
 
   } catch (err) {
-    console.log("ERRO PRODUTOS:", err.message);
-    res.status(500).json({ erro: "Erro ao buscar produtos" });
+    console.log("ERRO PRODUTOS:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
@@ -152,17 +151,18 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
 
     let imagemUrl = null;
 
+    // Upload da imagem
     if (req.file) {
       const fileName =
         Date.now() + "-" + req.file.originalname.replace(/\s/g, "");
 
-      const { error } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("produtos")
         .upload(fileName, req.file.buffer, {
           contentType: req.file.mimetype
         });
 
-      if (error) throw error;
+      if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
         .from("produtos")
@@ -187,8 +187,8 @@ app.post("/produtos", upload.single("imagem"), async (req, res) => {
     res.json(data[0]);
 
   } catch (err) {
-    console.log("ERRO CRIAR PRODUTO:", err.message);
-    res.status(500).json({ erro: "Erro ao criar produto" });
+    console.log("ERRO CRIAR PRODUTO:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
@@ -207,8 +207,8 @@ app.delete("/produtos/:id", async (req, res) => {
     res.json({ message: "Produto deletado com sucesso" });
 
   } catch (err) {
-    console.log("ERRO DELETAR:", err.message);
-    res.status(500).json({ erro: "Erro ao deletar produto" });
+    console.log("ERRO DELETAR:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
@@ -242,8 +242,8 @@ app.post("/pedidos", async (req, res) => {
     res.json(data[0]);
 
   } catch (err) {
-    console.log("ERRO PEDIDO:", err.message);
-    res.status(500).json({ erro: "Erro ao criar pedido" });
+    console.log("ERRO PEDIDO:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
@@ -260,8 +260,8 @@ app.get("/pedidos", async (req, res) => {
     res.json(data);
 
   } catch (err) {
-    console.log("ERRO PEDIDOS:", err.message);
-    res.status(500).json({ erro: "Erro ao buscar pedidos" });
+    console.log("ERRO PEDIDOS:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
@@ -282,13 +282,13 @@ app.put("/pedidos/:id", async (req, res) => {
     res.json(data[0]);
 
   } catch (err) {
-    console.log("ERRO STATUS:", err.message);
-    res.status(500).json({ erro: "Erro ao atualizar status" });
+    console.log("ERRO STATUS:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
 // =======================
-// 🚀 SERVER (CORREÇÃO RENDER)
+// 🚀 SERVER (RENDER READY)
 // =======================
 const PORT = process.env.PORT || 3000;
 
